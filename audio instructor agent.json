@@ -1,0 +1,419 @@
+{
+  "name": "audio instructor agent",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        -352,
+        -240
+      ],
+      "id": "5cddbff9-b6b3-41ba-9768-c1f37b2961e7",
+      "name": "WhatsApp Trigger",
+      "webhookId": "c5650d02-d727-4957-b59b-4abe14b6c13a",
+      "credentials": {
+        "whatsAppTriggerApi": {
+          "id": "BDdb2RwnH17naepH",
+          "name": "WhatsApp OAuth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        640,
+        -592
+      ],
+      "id": "795be223-c2b9-40a4-b137-e4918e0d3612",
+      "name": "Transcribe a recording",
+      "retryOnFail": true,
+      "credentials": {
+        "openAiApi": {
+          "id": "p1AiFxEsASu3Ddee",
+          "name": "first api key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "b5f9ae4c-6030-45b1-a794-1ed88655464e",
+                    "leftValue": "={{ $json.messages[0].type }}",
+                    "rightValue": "audio",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "audio"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -128,
+        -240
+      ],
+      "id": "a698f9be-2f8d-4f5d-b924-0a0c857ef1af",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer EAAJrRqYPY3gBP6vZBM6Vji4rwOaA1PL9LTmKMRyLxQ84GQDpmTEvVdZA2qFPzZBSyru1FQM4fapS2gqIP9quG1SuJ79ZB6WsxpKDzlmntcysXQrLmfd6p5KZCT3VrH6tRi6Do6rHOgC3bhSTgkRnXy90fx7VvOtOVLBiM8wZCBZCZAAC2OUEEEw3pZCqo9c1E7Q2HiHgcNN6miJxF"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        304,
+        -240
+      ],
+      "id": "1fea4e4d-ec63-405b-a5ff-a2900e765390",
+      "name": "download audio"
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.facebook.com/v21.0/{{ $json.messages[0].audio.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer EAAJrRqYPY3gBP6vZBM6Vji4rwOaA1PL9LTmKMRyLxQ84GQDpmTEvVdZA2qFPzZBSyru1FQM4fapS2gqIP9quG1SuJ79ZB6WsxpKDzlmntcysXQrLmfd6p5KZCT3VrH6tRi6Do6rHOgC3bhSTgkRnXy90fx7VvOtOVLBiM8wZCBZCZAAC2OUEEEw3pZCqo9c1E7Q2HiHgcNN6miJxF"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        128,
+        -240
+      ],
+      "id": "b28fad59-ad24-4ca7-9c18-565784125fc8",
+      "name": "generate link of audio"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "inputType": "binary",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1,
+      "position": [
+        640,
+        -400
+      ],
+      "id": "dd11cf47-d4e9-4a50-98a3-29661ec88e69",
+      "name": "transcribe audio",
+      "retryOnFail": true,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Rm5vrlXnWOfWDTUb",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.content.parts[0].text }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are an advanced instruction extraction assistant for automation workflows.\n\nYou have access to a customer data sheet that contains client names.\n\nYour job is to:\n1️⃣ Identify all actionable instructions or tasks from user input (transcribed speech, chat, or notes).\n2️⃣ Compare the text against the customer data sheet.\n   - If a client name from the sheet appears in the text (case-insensitive match), include it in the \"client_name\" field.\n   - If none match, set \"client_name\": null.\n3️⃣ If multiple actions are mentioned, split them into separate instructions.\n4️⃣ If no actionable content is found, return an empty list.\n\n⚙️ Output Rules:\n- You MUST output ONLY valid JSON.\n- No text, no markdown (no ```json), no explanations before or after the JSON.\n- Always include both fields: \"instruction\" and \"client_name\".\n- Use `null` (not empty string) when no client name is found.\n- Your JSON **must** match this exact format:\n\n{\n  \"instructions\": [\n    {\n      \"instruction\": \"string\",\n      \"client_name\": \"string or null\"\n    }\n  ]\n}\n\nExamples:\n\nExample 1:\nInput: \"Send the report to Smart Maids LLC and update Lawn Army about new rates.\"\n\nOutput:\n{\n  \"instructions\": [\n    {\n      \"instruction\": \"send the report\",\n      \"client_name\": \"Smart Maids LLC\"\n    },\n    {\n      \"instruction\": \"update about new rates\",\n      \"client_name\": \"Lawn Army\"\n    }\n  ]\n}\n\nExample 2:\nInput: \"Please create a new automation flow for scheduling messages.\"\n\nOutput:\n{\n  \"instructions\": [\n    {\n      \"instruction\": \"create a new automation flow for scheduling messages\",\n      \"client_name\": null\n    }\n  ]\n}\n\nExample 3:\nInput: \"Good morning!\"\n\nOutput:\n{\n  \"instructions\": []\n}\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        976,
+        -480
+      ],
+      "id": "92bfb3c1-ae71-4f1e-88a2-f770456574e3",
+      "name": "AI Agent",
+      "retryOnFail": false
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4-turbo",
+          "mode": "list",
+          "cachedResultName": "gpt-4-turbo"
+        },
+        "options": {
+          "responseFormat": "json_object"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        832,
+        -176
+      ],
+      "id": "fbfb0749-4859-4552-b587-68ef2faee3c0",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "p1AiFxEsASu3Ddee",
+          "name": "first api key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.content.parts[0].text }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        960,
+        -48
+      ],
+      "id": "be3e2964-c9cc-46c7-8d44-f19adf6bc0fd",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"instructions\": [\n    {\n      \"instruction\": \"string\",\n      \"client_name\": \"string | null\"\n    }\n  ]\n}\n"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1376,
+        -176
+      ],
+      "id": "cde6177c-cf4d-4f5f-af82-c411dc798377",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://chat.googleapis.com/v1/spaces/AAQA4yXhgGE/messages?key=AIzaSyDdI0hCZtE6vySjMm-WEfRq3CPzqKqqsHI&token=qZiRUfUsD9Wwo9m5rlV5JA1_au5-ios4uYHDFTuYUJ0",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\"text\":\"{{ $json.output.instructions[0].instruction }}.\"}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1296,
+        -480
+      ],
+      "id": "37ff1e95-79ee-46e7-921b-430e6920024c",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1rJTCiN9GcJkeG7FN4hUHz_5cPMSqP14Ppm61LoTO4K4",
+          "mode": "list",
+          "cachedResultName": "Customer data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rJTCiN9GcJkeG7FN4hUHz_5cPMSqP14Ppm61LoTO4K4/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 831472956,
+          "mode": "list",
+          "cachedResultName": "Customer data",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1rJTCiN9GcJkeG7FN4hUHz_5cPMSqP14Ppm61LoTO4K4/edit#gid=831472956"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        1120,
+        -112
+      ],
+      "id": "0fcb7c14-516d-41c5-9b57-f6b55e2baecb",
+      "name": "client data",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "LZHDqeoO48Rqk2Sl",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "generate link of audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe a recording": {
+      "main": [
+        []
+      ]
+    },
+    "download audio": {
+      "main": [
+        [
+          {
+            "node": "transcribe audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "generate link of audio": {
+      "main": [
+        [
+          {
+            "node": "download audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "transcribe audio": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "client data": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f3e45480-9529-4c6f-8bb8-e24c7d5fdd6e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d3f2ecae3412e9a08bbf5a59e7c354fcfbfa9c4cac52a37abdc7b87509678390"
+  },
+  "id": "GjxVHI9hrKyJ4dSa",
+  "tags": []
+}
